@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0B1F33" />
+<title>Protein Structure Explorer — Interactive 3D Bioinformatics Platform</title>
+<meta name="description" content="Search, visualize and analyze 3D biomolecular structures from the RCSB PDB." />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@3.38.0/build/viewer/molstar.css" />
+
+<style>
+/* ============================================================
+   1. DESIGN TOKENS
+   ============================================================ */
+:root{
+  --bg:#F5F7FA;
+  --navy:#0B1F33;
+  --navy-2:#122A44;
+  --navy-3:#1B3A5C;
+  --primary:#155EEF;
+  --primary-dk:#0B45B5;
+  --secondary:#0F766E;
+  --accent:#5EEAD4;
+  --card:#FFFFFF;
+  --text:#172033;
+  --muted:#5A6B80;
+  --border:#D9E1EA;
+  --border-2:#EAF0F6;
+  --danger:#B42318;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow-sm:0 1px 2px rgba(11,31,51,.06);
+  --shadow:0 1px 3px rgba(11,31,51,.07), 0 8px 24px rgba(11,31,51,.06);
+  --shadow-lg:0 12px 40px rgba(11,31,51,.14);
+  --nav-h:62px;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
+}
+
+/* ============================================================
+   2. RESET / BASE
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+body{
+  margin:0;
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img,svg,canvas{max-width:100%;display:block;}
+button,input,select{font:inherit;color:inherit;}
+button{cursor:pointer;border:none;background:none;}
+a{color:var(--primary);text-decoration:none;}
+h1,h2,h3,h4{margin:0;line-height:1.25;letter-spacing:-.015em;}
+p{margin:0;}
+[hidden]{display:none !important;}
+
+.container{width:100%;max-width:1360px;margin:0 auto;padding:0 14px;}
+@media(min-width:640px){.container{padding:0 20px;}}
+@media(min-width:1024px){.container{padding:0 28px;}}
+
+/* Focus ring (accessibility) */
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px;}
+
+/* ============================================================
+   3. NAVBAR
+   ============================================================ */
+.nav{
+  position:sticky;top:0;z-index:60;
+  background:var(--navy);
+  color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  box-shadow:0 1px 0 rgba(0,0,0,.2);
+}
+.nav-inner{
+  height:var(--nav-h);
+  display:flex;align-items:center;gap:12px;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;
+  color:#fff;min-width:0;flex:1;
+}
+.brand-logo{
+  flex:0 0 auto;
+  width:38px;height:38px;border-radius:9px;
+  display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--primary),var(--secondary));
+  font-size:19px;
+  box-shadow:0 2px 10px rgba(21,94,239,.35);
+}
+.brand-text{min-width:0;display:flex;flex-direction:column;line-height:1.15;}
+.brand-text strong{
+  font-size:14px;font-weight:700;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.brand-text small{
+  font-size:10.5px;color:#8FA9C4;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+@media(min-width:900px){
+  .brand-text strong{font-size:15.5px;}
+  .brand-text small{font-size:11.5px;}
+}
+
+.nav-links{display:none;gap:4px;align-items:center;}
+.nav-links a{
+  color:#C6D6E6;font-size:13.5px;font-weight:500;
+  padding:8px 13px;border-radius:7px;
+  transition:background .15s,color .15s;
+}
+.nav-links a:hover{background:rgba(255,255,255,.09);color:#fff;}
+
+.nav-toggle{
+  display:grid;place-items:center;
+  width:42px;height:42px;border-radius:9px;
+  color:#fff;font-size:19px;
+  background:rgba(255,255,255,.08);
+  flex:0 0 auto;
+}
+.nav-toggle:active{background:rgba(255,255,255,.16);}
+
+.nav-mobile{
+  display:none;flex-direction:column;
+  padding:6px 14px 14px;gap:2px;
+  border-top:1px solid rgba(255,255,255,.08);
+  background:var(--navy-2);
+}
+.nav-mobile.open{display:flex;}
+.nav-mobile a{
+  color:#C6D6E6;font-size:14.5px;font-weight:500;
+  padding:12px 10px;border-radius:8px;
+}
+.nav-mobile a:active{background:rgba(255,255,255,.09);}
+
+@media(min-width:900px){
+  .nav-links{display:flex;}
+  .nav-toggle{display:none;}
+  .nav-mobile{display:none !important;}
+}
+
+/* ============================================================
+   4. HERO / LANDING
+   ============================================================ */
+.hero{padding:34px 0 30px;}
+@media(min-width:900px){.hero{padding:70px 0 60px;}}
+@media(min-width:1200px){.hero{padding:88px 0 76px;}}
+
+.hero-grid{display:grid;gap:34px;align-items:center;}
+@media(min-width:960px){
+  .hero-grid{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:52px;}
+}
+
+.eyebrow{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--secondary);
+  background:#E6F5F2;
+  border:1px solid #C4E8E2;
+  padding:5px 11px;border-radius:100px;
+  margin-bottom:16px;
+}
+.eyebrow .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--secondary);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.hero h1{
+  font-size:clamp(29px,7.2vw,54px);
+  font-weight:800;
+  letter-spacing:-.032em;
+  color:var(--navy);
+  margin-bottom:14px;
+}
+.hero h1 .accent{
+  background:linear-gradient(100deg,var(--primary),var(--secondary));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-sub{
+  font-size:clamp(14.5px,3.6vw,17px);
+  color:var(--muted);
+  max-width:56ch;
+  margin-bottom:24px;
+  line-height:1.62;
+}
+
+/* Search */
+.search-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:10px;
+  max-width:600px;
+}
+.search-row{display:flex;flex-direction:column;gap:9px;}
+@media(min-width:560px){.search-row{flex-direction:row;}}
+
+.search-input-wrap{
+  position:relative;flex:1;min-width:0;display:flex;align-items:center;
+}
+.search-input-wrap .ico{
+  position:absolute;left:13px;font-size:15px;opacity:.45;pointer-events:none;
+}
+.search-input{
+  width:100%;
+  height:48px;
+  padding:0 14px 0 39px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:#FBFCFE;
+  font-size:15px; /* >=16 prevents iOS zoom on focus for some devices; 15 ok with viewport meta */
+  outline:none;
+  transition:border-color .15s, box-shadow .15s, background .15s;
+}
+.search-input:focus{
+  border-color:var(--primary);
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(21,94,239,.13);
+}
+.search-input::placeholder{color:#94A3B4;}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:48px;padding:0 22px;
+  border-radius:var(--radius-sm);
+  font-size:14.5px;font-weight:650;
+  letter-spacing:-.005em;
+  transition:background .15s, transform .08s, box-shadow .15s, border-color .15s;
+  white-space:nowrap;
+  min-height:44px;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{
+  background:var(--primary);color:#fff;
+  box-shadow:0 2px 10px rgba(21,94,239,.28);
+}
+.btn-primary:hover{background:var(--primary-dk);}
+.btn-ghost{
+  background:#fff;color:var(--navy);
+  border:1px solid var(--border);
+}
+.btn-ghost:hover{background:#F3F6FA;border-color:#C3CFDC;}
+.btn-sm{height:38px;padding:0 14px;font-size:13px;border-radius:7px;min-height:38px;}
+
+/* Search results list */
+.search-results{
+  margin-top:10px;
+  border-top:1px solid var(--border-2);
+  padding-top:9px;
+  max-height:290px;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.search-results .srl{
+  display:flex;gap:11px;align-items:flex-start;
+  padding:10px 9px;border-radius:8px;cursor:pointer;width:100%;text-align:left;
+}
+.search-results .srl:hover{background:#F3F7FC;}
+.search-results .srl:active{background:#E8F0FA;}
+.srl-id{
+  flex:0 0 auto;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  color:var(--primary);background:#EAF1FE;
+  padding:3px 8px;border-radius:5px;
+}
+.srl-body{min-width:0;}
+.srl-title{
+  font-size:13.5px;font-weight:600;color:var(--text);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.srl-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+/* Quick chips */
+.quick{margin-top:22px;}
+.quick-label{
+  font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:#8496AA;margin-bottom:9px;
+}
+.chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;
+  background:#fff;border:1px solid var(--border);
+  border-radius:100px;padding:7px 13px 7px 8px;
+  font-size:12.5px;font-weight:600;color:var(--navy);
+  box-shadow:var(--shadow-sm);
+  transition:border-color .15s, transform .08s;
+}
+.chip:hover{border-color:var(--primary);}
+.chip:active{transform:scale(.97);}
+.chip .cid{
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  background:#EAF1FE;color:var(--primary);
+  padding:2px 6px;border-radius:4px;
+}
+
+/* Hero visual */
+.hero-visual{
+  position:relative;
+  background:radial-gradient(120% 100% at 70% 15%,#1B3A5C 0%,#0B1F33 60%);
+  border-radius:16px;
+  aspect-ratio:1.08/1;
+  max-height:400px;
+  overflow:hidden;
+  box-shadow:var(--shadow-lg);
+  border:1px solid rgba(255,255,255,.07);
+}
+@media(min-width:960px){.hero-visual{aspect-ratio:1/1;max-height:460px;}}
+#heroCanvas{position:absolute;inset:0;width:100%;height:100%;}
+.hero-visual .hv-tag{
+  position:absolute;left:14px;bottom:14px;
+  display:flex;align-items:center;gap:7px;
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:#8FB6DE;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  padding:6px 11px;border-radius:100px;
+  backdrop-filter:blur(6px);
+}
+
+/* ============================================================
+   5. SECTIONS / FEATURE STRIP
+   ============================================================ */
+.section{padding:34px 0;}
+@media(min-width:900px){.section{padding:52px 0;}}
+.section-head{margin-bottom:22px;}
+.section-head h2{
+  font-size:clamp(19px,4.6vw,25px);font-weight:750;color:var(--navy);
+  letter-spacing:-.02em;margin-bottom:6px;
+}
+.section-head p{color:var(--muted);font-size:14px;max-width:62ch;}
+
+.feature-grid{
+  display:grid;gap:12px;
+  grid-template-columns:1fr;
+}
+@media(min-width:600px){.feature-grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:980px){.feature-grid{grid-template-columns:repeat(4,1fr);}}
+.feature{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:17px;
+  box-shadow:var(--shadow-sm);
+}
+.feature .fi{
+  width:36px;height:36px;border-radius:9px;
+  display:grid;place-items:center;font-size:17px;
+  background:#EAF1FE;margin-bottom:11px;
+}
+.feature h3{font-size:14px;font-weight:700;margin-bottom:5px;color:var(--navy);}
+.feature p{font-size:12.8px;color:var(--muted);line-height:1.6;}
+
+/* ============================================================
+   6. DASHBOARD
+   ============================================================ */
+#dashboard{padding:16px 0 56px;}
+@media(min-width:900px){#dashboard{padding:26px 0 72px;}}
+
+.dash-bar{
+  display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.dash-bar .spacer{flex:1;}
+.pdb-badge{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--navy);color:#fff;
+  border-radius:9px;padding:7px 13px;
+  font-size:13px;font-weight:700;
+}
+.pdb-badge .code{
+  font-family:var(--mono);letter-spacing:.06em;font-size:14px;color:var(--accent);
+}
+.dash-title{
+  font-size:14.5px;font-weight:650;color:var(--navy);
+  min-width:0;flex:1 1 100%;
+  overflow:hidden;text-overflow:ellipsis;
+}
+@media(min-width:700px){.dash-title{flex:1 1 auto;white-space:nowrap;}}
+
+/* Download dropdown */
+.dd{position:relative;}
+.dd-menu{
+  position:absolute;right:0;top:calc(100% + 7px);
+  background:#fff;border:1px solid var(--border);
+  border-radius:10px;box-shadow:var(--shadow-lg);
+  min-width:230px;padding:6px;z-index:40;
+  display:none;
+}
+.dd.open .dd-menu{display:block;}
+.dd-menu button{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:10px 11px;border-radius:7px;
+  font-size:13.5px;font-weight:550;color:var(--text);text-align:left;
+}
+.dd-menu button:hover{background:#F2F6FB;}
+.dd-menu button .di{font-size:14px;width:18px;text-align:center;}
+
+/* Grid */
+.dash-grid{display:grid;gap:14px;}
+@media(min-width:1020px){
+  .dash-grid{grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);gap:16px;align-items:start;}
+}
+
+/* Viewer */
+.viewer-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.viewer-head{
+  display:flex;align-items:center;gap:9px;
+  padding:11px 13px;
+  border-bottom:1px solid var(--border-2);
+  background:#FBFCFE;
+}
+.viewer-head .vh-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--secondary);
+  box-shadow:0 0 0 3px rgba(15,118,110,.16);
+}
+.viewer-head h3{
+  font-size:11.5px;font-weight:750;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--navy);
+}
+.viewer-head .vh-hint{
+  margin-left:auto;font-size:11px;color:var(--muted);
+  display:none;
+}
+@media(min-width:700px){.viewer-head .vh-hint{display:block;}}
+
+.viewer-shell{
+  position:relative;
+  height:clamp(300px,52vh,560px);
+  background:#0B1F33;
+}
+@media(min-width:1020px){.viewer-shell{height:min(62vh,600px);}}
+#molstar-host{position:absolute;inset:0;width:100%;height:100%;}
+#molstar-host canvas{outline:none;}
+
+.viewer-loading{
+  position:absolute;inset:0;z-index:5;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:13px;background:#0B1F33;color:#9DB6D0;font-size:12.5px;
+  text-align:center;padding:20px;
+}
+.spinner{
+  width:34px;height:34px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.14);
+  border-top-color:var(--accent);
+  animation:spin .85s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.viewer-loading .vl-bar{
+  width:min(230px,64%);height:4px;border-radius:100px;
+  background:rgba(255,255,255,.1);overflow:hidden;
+}
+.viewer-loading .vl-bar i{
+  display:block;height:100%;width:38%;
+  background:linear-gradient(90deg,var(--primary),var(--accent));
+  border-radius:100px;animation:load 1.25s ease-in-out infinite;
+}
+@keyframes load{0%{margin-left:-38%;}100%{margin-left:100%;}}
+
+.viewer-toolbar{
+  display:flex;gap:7px;flex-wrap:wrap;
+  padding:10px 11px;
+  border-top:1px solid var(--border-2);
+  background:#FBFCFE;
+}
+.rep-btn{
+  font-size:12px;font-weight:600;
+  padding:7px 12px;border-radius:7px;
+  border:1px solid var(--border);
+  background:#fff;color:var(--navy);
+  min-height:36px;
+}
+.rep-btn:hover{border-color:#B9C9DA;background:#F3F7FC;}
+.rep-btn.active{
+  background:var(--navy);border-color:var(--navy);color:#fff;
+}
+.toolbar-right{margin-left:auto;display:flex;gap:7px;}
+
+/* Info panel */
+.info-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.info-head{
+  padding:13px 15px;
+  border-bottom:1px solid var(--border-2);
+  background:#FBFCFE;
+}
+.info-head h3{
+  font-size:11.5px;font-weight:750;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--navy);
+}
+.info-body{padding:5px 15px 14px;}
+.info-row{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:10px 0;
+  border-bottom:1px solid var(--border-2);
+}
+.info-row:last-child{border-bottom:none;}
+.info-k{
+  flex:0 0 42%;max-width:150px;
+  font-size:11.5px;font-weight:650;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.045em;
+  padding-top:1px;
+}
+.info-v{
+  flex:1;min-width:0;
+  font-size:13.5px;font-weight:550;color:var(--text);
+  word-break:break-word;
+}
+.info-v.mono{font-family:var(--mono);font-size:13px;}
+.info-v .sub{display:block;font-size:11.5px;font-weight:450;color:var(--muted);margin-top:2px;}
+
+/* Stat tiles */
+.stat-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:9px;
+  padding:13px 15px 15px;
+  border-top:1px solid var(--border-2);
+}
+@media(min-width:480px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1020px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+.stat{
+  background:#F7F9FC;border:1px solid var(--border-2);
+  border-radius:9px;padding:11px 12px;
+}
+.stat .sv{
+  font-size:19px;font-weight:750;color:var(--navy);
+  letter-spacing:-.02em;font-family:var(--mono);line-height:1.15;
+}
+.stat .sl{
+  font-size:10.5px;font-weight:650;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.055em;margin-top:3px;
+}
+
+/* ============================================================
+   7. TABS
+   ============================================================ */
+.tabs-wrap{
+  margin-top:16px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.tabs{
+  display:flex;gap:2px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  border-bottom:1px solid var(--border);
+  background:#FBFCFE;
+  padding:0 6px;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  flex:0 0 auto;
+  padding:13px 15px;
+  font-size:13px;font-weight:620;color:var(--muted);
+  border-bottom:2.5px solid transparent;
+  white-space:nowrap;
+  min-height:46px;
+}
+.tab:hover{color:var(--navy);}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+@media(min-width:640px){.tab{padding:14px 20px;font-size:13.5px;}}
+
+.panel{padding:16px;}
+@media(min-width:640px){.panel{padding:22px;}}
+.panel h4{
+  font-size:12px;font-weight:750;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--navy);margin-bottom:12px;
+}
+
+/* Sequence */
+.seq-block{
+  background:#F7F9FC;border:1px solid var(--border-2);
+  border-radius:10px;padding:12px;margin-bottom:14px;
+}
+.seq-block-head{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  margin-bottom:10px;
+}
+.seq-chain{
+  font-family:var(--mono);font-size:11.5px;font-weight:700;
+  background:var(--navy);color:var(--accent);
+  padding:3px 9px;border-radius:5px;
+}
+.seq-name{font-size:12.5px;font-weight:600;color:var(--navy);}
+.seq-len{
+  font-size:11px;color:var(--muted);margin-left:auto;
+  font-family:var(--mono);
+}
+.seq{
+  font-family:var(--mono);
+  font-size:11.5px;
+  line-height:1.95;
+  letter-spacing:.055em;
+  color:#2B3B52;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  word-break:break-all;
+  white-space:pre-wrap;
+}
+@media(min-width:640px){.seq{font-size:12.5px;}}
+.seq .ln{
+  color:#9AAABD;user-select:none;
+  display:inline-block;width:4.2em;
+  text-align:right;margin-right:.7em;
+}
+.seq .res{cursor:pointer;border-radius:2px;padding:1px 0;}
+.seq .res:hover{background:#D6E6FF;color:var(--primary-dk);}
+
+/* Chains table */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border-2);}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px;}
+thead th{
+  text-align:left;padding:10px 13px;
+  font-size:10.5px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);background:#F7F9FC;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+tbody td{
+  padding:11px 13px;border-bottom:1px solid var(--border-2);
+  vertical-align:top;
+}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#FAFCFF;}
+td.mono{font-family:var(--mono);font-size:12.5px;font-weight:650;color:var(--primary);}
+.chain-pill{
+  display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:700;
+  background:#EAF1FE;color:var(--primary);
+  padding:2px 7px;border-radius:4px;margin:2px 3px 2px 0;
+}
+.chain-pill.btn{cursor:pointer;border:1px solid transparent;}
+.chain-pill.btn:hover{background:#D6E6FF;border-color:var(--primary);}
+
+/* Ligand grid */
+.lig-grid{
+  display:grid;gap:10px;
+  grid-template-columns:1fr;
+}
+@media(min-width:520px){.lig-grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:900px){.lig-grid{grid-template-columns:repeat(3,1fr);}}
+.lig{
+  display:flex;gap:12px;align-items:flex-start;
+  background:#F9FBFD;border:1px solid var(--border-2);
+  border-radius:10px;padding:12px;
+  transition:border-color .15s,box-shadow .15s;
+}
+.lig:hover{border-color:#BFD3EA;box-shadow:var(--shadow-sm);}
+.lig-id{
+  flex:0 0 auto;
+  font-family:var(--mono);font-size:12.5px;font-weight:700;
+  background:var(--secondary);color:#fff;
+  padding:5px 9px;border-radius:6px;letter-spacing:.04em;
+}
+.lig-body{min-width:0;flex:1;}
+.lig-name{font-size:13px;font-weight:620;color:var(--text);line-height:1.35;}
+.lig-meta{font-size:11px;color:var(--muted);margin-top:3px;}
+.lig-btn{
+  font-size:11px;font-weight:650;color:var(--primary);
+  padding:4px 0;margin-top:5px;
+}
+.lig-btn:hover{text-decoration:underline;}
+
+/* Bars / composition */
+.bar-row{margin-bottom:13px;}
+.bar-top{
+  display:flex;justify-content:space-between;gap:10px;
+  font-size:12.5px;font-weight:600;margin-bottom:5px;
+}
+.bar-top .bv{font-family:var(--mono);color:var(--muted);font-size:12px;}
+.bar-track{
+  height:8px;background:#EDF2F8;border-radius:100px;overflow:hidden;
+}
+.bar-fill{
+  height:100%;border-radius:100px;
+  background:linear-gradient(90deg,var(--primary),var(--secondary));
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+
+/* Empty state */
+.empty{
+  text-align:center;padding:34px 16px;color:var(--muted);font-size:13.5px;
+}
+.empty .ei{font-size:26px;display:block;margin-bottom:9px;opacity:.5;}
+
+/* ============================================================
+   8. HOW-TO STRIP
+   ============================================================ */
+.steps{
+  display:grid;gap:11px;
+  grid-template-columns:1fr;
+}
+@media(min-width:640px){.steps{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:1000px){.steps{grid-template-columns:repeat(4,1fr);}}
+.step{
+  background:#fff;border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;
+  position:relative;
+}
+.step .sn{
+  width:26px;height:26px;border-radius:7px;
+  display:grid;place-items:center;
+  background:var(--navy);color:#fff;
+  font-size:12px;font-weight:750;
+  font-family:var(--mono);
+  margin-bottom:10px;
+}
+.step h4{font-size:13.5px;font-weight:700;color:var(--navy);margin-bottom:5px;}
+.step p{font-size:12.6px;color:var(--muted);line-height:1.6;}
+
+/* ============================================================
+   9. FOOTER
+   ============================================================ */
+footer{
+  background:var(--navy);color:#8FA9C4;
+  margin-top:26px;
+  padding:26px 0 30px;
+  font-size:12.5px;
+}
+.foot-grid{display:grid;gap:18px;}
+@media(min-width:760px){.foot-grid{grid-template-columns:1.5fr 1fr 1fr;gap:34px;}}
+footer h5{
+  color:#fff;font-size:11.5px;font-weight:750;
+  letter-spacing:.09em;text-transform:uppercase;margin:0 0 10px;
+}
+footer p{line-height:1.65;}
+footer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;}
+footer a{color:#8FA9C4;font-size:12.5px;}
+footer a:hover{color:#fff;}
+.foot-bottom{
+  margin-top:22px;padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.09);
+  display:flex;flex-wrap:wrap;gap:9px;justify-content:space-between;
+  font-size:11.5px;
+}
+
+/* ============================================================
+   10. TOAST + UTIL
+   ============================================================ */
+.toast-host{
+  position:fixed;left:14px;right:14px;bottom:16px;z-index:120;
+  display:flex;flex-direction:column;gap:8px;align-items:center;
+  pointer-events:none;
+}
+@media(min-width:640px){
+  .toast-host{left:auto;right:20px;bottom:20px;align-items:flex-end;max-width:380px;}
+}
+.toast{
+  background:var(--navy);color:#fff;
+  padding:11px 15px;border-radius:9px;
+  font-size:13px;font-weight:500;
+  box-shadow:var(--shadow-lg);
+  max-width:100%;
+  animation:tin .22s ease-out;
+  pointer-events:auto;
+  border-left:3px solid var(--accent);
+}
+.toast.err{border-left-color:#FF6B6B;}
+@keyframes tin{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+.skeleton{
+  background:linear-gradient(90deg,#EEF2F7 25%,#F7F9FC 50%,#EEF2F7 75%);
+  background-size:200% 100%;
+  animation:sk 1.3s ease-in-out infinite;
+  border-radius:6px;
+  color:transparent !important;
+}
+@keyframes sk{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* Mol* overrides for embedded theme */
+#molstar-host .msp-plugin{background:#0B1F33 !important;}
+</style>
+</head>
+<body>
+
+<!-- ================= NAVBAR ================= -->
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="#" class="brand" id="brandLink">
+      <span class="brand-logo">🧬</span>
+      <span class="brand-text">
+        <strong>Protein Structure Explorer</strong>
+        <small>Open Structural Biology Research Platform</small>
+      </span>
+    </a>
+    <nav class="nav-links">
+      <a href="#explore">Explore</a>
+      <a href="#structures">Structures</a>
+      <a href="#howto">Documentation</a>
+      <a href="#about">About</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="#explore">Explore</a>
+    <a href="#structures">Structures</a>
+    <a href="#howto">Documentation</a>
+    <a href="#about">About</a>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= LANDING ================= -->
+<section id="landing">
+  <div class="container hero" id="explore">
+    <div class="hero-grid">
+
+      <div class="hero-text">
+        <span class="eyebrow"><span class="dot"></span> Live RCSB PDB Data</span>
+        <h1>Explore Protein Structures<br><span class="accent">in Three Dimensions</span></h1>
+        <p class="hero-sub">
+          Search, visualize and analyze biomolecular structures using public
+          structural biology data. Enter a PDB ID or a protein name to begin.
+        </p>
+
+        <div class="search-card">
+          <form class="search-row" id="searchForm" autocomplete="off">
+            <div class="search-input-wrap">
+              <span class="ico">🔍</span>
+              <input
+                class="search-input"
+                id="searchInput"
+                type="text"
+                placeholder="Enter PDB ID e.g. 1TUP or protein name"
+                aria-label="Search PDB ID or protein name"
+                inputmode="text"
+                autocapitalize="characters"
+                spellcheck="false" />
+            </div>
+            <button class="btn btn-primary" type="submit" id="exploreBtn">Explore</button>
+          </form>
+          <div id="searchResults"></div>
+        </div>
+
+        <div class="quick">
+          <div class="quick-label">Try these structures</div>
+          <div class="chips" id="quickChips"></div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <canvas id="heroCanvas" aria-hidden="true"></canvas>
+        <span class="hv-tag">● Rendering structure preview</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Feature strip -->
+  <div class="container section" id="structures">
+    <div class="section-head">
+      <h2>What you can do</h2>
+      <p>Everything runs in your browser — no install, no account, no server of your own.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature">
+        <div class="fi">🔎</div>
+        <h3>Search</h3>
+        <p>Look up any of the 200,000+ experimental structures by PDB ID or full-text protein name.</p>
+      </div>
+      <div class="feature">
+        <div class="fi">🧬</div>
+        <h3>3D Visualization</h3>
+        <p>Rotate, zoom and inspect structures with the Mol* molecular viewer used by RCSB PDB itself.</p>
+      </div>
+      <div class="feature">
+        <div class="fi">📊</div>
+        <h3>Analysis</h3>
+        <p>Chains, sequences, ligands, resolution, atom counts and composition — all from live data.</p>
+      </div>
+      <div class="feature">
+        <div class="fi">⬇️</div>
+        <h3>Download</h3>
+        <p>Export coordinates in PDB / mmCIF format and sequences in FASTA format.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to use -->
+  <div class="container section" id="howto">
+    <div class="section-head">
+      <h2>How to use</h2>
+      <p>Four steps. Works the same on a phone and on a laptop.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="sn">1</div>
+        <h4>Enter an ID</h4>
+        <p>Type a 4-character PDB ID like <b>1TUP</b>, or any protein name such as <i>hemoglobin</i>.</p>
+      </div>
+      <div class="step">
+        <div class="sn">2</div>
+        <h4>Open the explorer</h4>
+        <p>The dashboard loads the 3D model on the left (top on mobile) and live metadata on the right.</p>
+      </div>
+      <div class="step">
+        <div class="sn">3</div>
+        <h4>Switch tabs</h4>
+        <p>Use Overview, Sequence, Chains and Ligands to dig into the structure. Tap a chain to isolate it.</p>
+      </div>
+      <div class="step">
+        <div class="sn">4</div>
+        <h4>Download</h4>
+        <p>Use the Download button in the top bar to save the structure file or the sequence.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="container section" id="about">
+    <div class="section-head">
+      <h2>About this platform</h2>
+    </div>
+    <div class="feature" style="max-width:none;">
+      <p style="font-size:13.5px;color:var(--muted);line-height:1.75;max-width:80ch;">
+        Protein Structure Explorer is an open, browser-based bioinformatics interface built on top of the
+        <b>RCSB Protein Data Bank</b> public REST API and the <b>Mol*</b> molecular visualization engine.
+        It does not store or redistribute structural data — every query is answered live by RCSB PDB
+        servers. All scientific content remains the property of the original depositors.
+        This is an independent educational project and is not affiliated with or endorsed by RCSB PDB
+        or any government agency.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DASHBOARD ================= -->
+<section id="dashboard" hidden>
+  <div class="container">
+
+    <div class="dash-bar">
+      <button class="btn btn-ghost btn-sm" id="backBtn">← New Search</button>
+      <div class="pdb-badge">
+        <span>PDB</span><span class="code" id="badgeId">—</span>
+      </div>
+      <div class="dash-title" id="dashTitle">Loading…</div>
+      <div class="spacer"></div>
+      <div class="dd" id="ddWrap">
+        <button class="btn btn-ghost btn-sm" id="ddBtn">⬇ Download ▾</button>
+        <div class="dd-menu" id="ddMenu">
+          <button data-dl="pdb"><span class="di">📄</span> PDB Structure (.pdb)</button>
+          <button data-dl="cif"><span class="di">📄</span> mmCIF Structure (.cif)</button>
+          <button data-dl="fasta"><span class="di">🧬</span> FASTA Sequence (.fasta)</button>
+          <button data-dl="report"><span class="di">📊</span> Structure Report (.txt)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+
+      <!-- Viewer -->
+      <div class="viewer-card">
+        <div class="viewer-head">
+          <span class="vh-dot"></span>
+          <h3>3D Structure</h3>
+          <span class="vh-hint">Drag to rotate · Pinch / scroll to zoom</span>
+        </div>
+        <div class="viewer-shell">
+          <div id="molstar-host"></div>
+          <div class="viewer-loading" id="viewerLoading">
+            <div class="spinner"></div>
+            <div id="viewerMsg">Initializing molecular viewer…</div>
+            <div class="vl-bar"><i></i></div>
+          </div>
+        </div>
+        <div class="viewer-toolbar">
+          <button class="rep-btn active" data-rep="cartoon">Cartoon</button>
+          <button class="rep-btn" data-rep="surface">Surface</button>
+          <button class="rep-btn" data-rep="ball-and-stick">Ball &amp; Stick</button>
+          <button class="rep-btn" data-rep="spacefill">Spacefill</button>
+          <div class="toolbar-right">
+            <button class="rep-btn" id="resetBtn" title="Reset view">⟲</button>
+            <button class="rep-btn" id="fsBtn" title="Fullscreen">⛶</button>
+            <button class="rep-btn" id="shotBtn" title="Save image">📷</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <aside class="info-card">
+        <div class="info-head"><h3>Structure Information</h3></div>
+        <div class="info-body" id="infoBody">
+          <div class="info-row"><div class="info-k">PDB ID</div><div class="info-v skeleton">----</div></div>
+          <div class="info-row"><div class="info-k">Protein</div><div class="info-v skeleton">Loading data</div></div>
+          <div class="info-row"><div class="info-k">Organism</div><div class="info-v skeleton">Loading</div></div>
+          <div class="info-row"><div class="info-k">Method</div><div class="info-v skeleton">Loading</div></div>
+          <div class="info-row"><div class="info-k">Resolution</div><div class="info-v skeleton">--</div></div>
+        </div>
+        <div class="stat-grid" id="statGrid">
+          <div class="stat"><div class="sv skeleton">000</div><div class="sl">Residues</div></div>
+          <div class="stat"><div class="sv skeleton">0</div><div class="sl">Chains</div></div>
+          <div class="stat"><div class="sv skeleton">0000</div><div class="sl">Atoms</div></div>
+          <div class="stat"><div class="sv skeleton">0.0</div><div class="sl">Resolution</div></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-wrap">
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab active" data-tab="overview" role="tab">Overview</button>
+        <button class="tab" data-tab="sequence" role="tab">Sequence</button>
+        <button class="tab" data-tab="chains" role="tab">Chains</button>
+        <button class="tab" data-tab="ligands" role="tab">Ligands</button>
+        <button class="tab" data-tab="composition" role="tab">Composition</button>
+      </div>
+      <div class="panel" id="panel">
+        <div class="empty"><span class="ei">⏳</span>Loading structure data…</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <h5>Protein Structure Explorer</h5>
+        <p>
+          An open, browser-based interface for exploring 3D biomolecular structures.
+          Built on the RCSB PDB public API and the Mol* visualization engine.
+        </p>
+      </div>
+      <div>
+        <h5>Navigate</h5>
+        <ul>
+          <li><a href="#explore">Explore</a></li>
+          <li><a href="#structures">Structures</a></li>
+          <li><a href="#howto">Documentation</a></li>
+          <li><a href="#about">About</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Data Sources</h5>
+        <ul>
+          <li><a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a></li>
+          <li><a href="https://molstar.org" target="_blank" rel="noopener">Mol* Viewer</a></li>
+          <li><a href="https://data.rcsb.org" target="_blank" rel="noopener">RCSB Data API</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="year"></span> Protein Structure Explorer · Educational project</span>
+      <span>Not affiliated with RCSB PDB</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script>
+/* ============================================================
+   PROTEIN STRUCTURE EXPLORER — APPLICATION SCRIPT
+   ============================================================ */
+(function () {
+  'use strict';
+
+  /* ---------- CONFIG ---------- */
+  const DATA_API   = 'https://data.rcsb.org/rest/v1/core';
+  const FILES_API  = 'https://files.rcsb.org/download';
+  const SEARCH_API = 'https://search.rcsb.org/rcsbsearch/v2/query';
+  const MAX_LIGANDS = 24;
+
+  /* ---------- APP STATE ---------- */
+  const state = {
+    pdbId: null,
+    entry: null,
+    entities: [],      // polymer entities
+    ligands: [],       // nonpolymer entities
+    rep: 'cartoon',
+    viewer: null,
+    viewerReady: false,
+    viewerMode: null,  // 'plugin' | 'iframe'
+    loadingStructure: false
+  };
+
+  /* ---------- DOM ---------- */
+  const $ = (id) => document.getElementById(id);
+  const landing    = $('landing');
+  const dashboard  = $('dashboard');
+  const searchForm = $('searchForm');
+  const searchInput= $('searchInput');
+  const searchRes  = $('searchResults');
+  const infoBody   = $('infoBody');
+  const statGrid   = $('statGrid');
+  const panel      = $('panel');
+  const toastHost  = $('toastHost');
+  const viewerHost = $('molstar-host');
+  const viewerLoad = $('viewerLoading');
+  const viewerMsg  = $('viewerMsg');
+
+  /* ============================================================
+     UTILITIES
+     ============================================================ */
+  function toast(msg, isErr) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (isErr ? ' err' : '');
+    el.textContent = msg;
+    toastHost.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = 'opacity .3s, transform .3s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(8px)';
+      setTimeout(() => el.remove(), 320);
+    }, 3400);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function fmtNum(n) {
+    if (n == null || isNaN(n)) return '—';
+    return Number(n).toLocaleString('en-US');
+  }
+
+  function shortDate(s) {
+    if (!s) return null;
+    const d = new Date(s);
+    if (isNaN(d)) return s;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  async function getJSON(url) {
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  async function getText(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  }
+
+  function isPdbId(s) {
+    return /^[0-9][A-Za-z0-9]{3}$/.test(s.trim());
+  }
+
+  /* ============================================================
+     HERO CANVAS — rotating helix point cloud
+     ============================================================ */
+  function initHero() {
+    const canvas = $('heroCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, dpr = 1, raf = null, t0 = performance.now();
+
+    // build helix point cloud (two strands + rungs)
+    const strandA = [], strandB = [], rungs = [];
+    const N = 64;
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1);
+      const ang = t * Math.PI * 7.2;
+      const y = (t - 0.5) * 2.35;
+      strandA.push({ x: Math.cos(ang) * 0.52, y, z: Math.sin(ang) * 0.52 });
+      strandB.push({ x: Math.cos(ang + Math.PI) * 0.52, y, z: Math.sin(ang + Math.PI) * 0.52 });
+      if (i % 3 === 0) {
+        rungs.push([
+          { x: Math.cos(ang) * 0.52, y, z: Math.sin(ang) * 0.52 },
+          { x: Math.cos(ang + Math.PI) * 0.52, y, z: Math.sin(ang + Math.PI) * 0.52 }
+        ]);
+      }
+    }
+
+    function resize() {
+      const r = canvas.parentElement.getBoundingClientRect();
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = r.width; H = r.height;
+      canvas.width  = Math.max(1, Math.floor(W * dpr));
+      canvas.height = Math.max(1, Math.floor(H * dpr));
+      canvas.style.width  = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function project(p, cos, sin, cx, cy, R) {
+      const x1 = p.x * cos - p.z * sin;
+      const z1 = p.x * sin + p.z * cos;
+      const sc = 1 / (1 + z1 * 0.42);
+      return { x: cx + x1 * R * sc, y: cy - p.y * R * sc, s: sc };
+    }
+
+    function draw(now) {
+      const time = (now - t0) / 1000;
+      const a = time * 0.42;
+      const cos = Math.cos(a), sin = Math.sin(a);
+      const cx = W / 2, cy = H / 2;
+      const R = Math.min(W, H) * 0.40;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // soft glow
+      const g = ctx.createRadialGradient(cx, cy * 0.9, 0, cx, cy, Math.max(W, H) * 0.62);
+      g.addColorStop(0, 'rgba(21,94,239,.20)');
+      g.addColorStop(1, 'rgba(11,31,51,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+
+      // rungs
+      ctx.lineWidth = 1;
+      rungs.forEach(pair => {
+        const p1 = project(pair[0], cos, sin, cx, cy, R);
+        const p2 = project(pair[1], cos, sin, cx, cy, R);
+        const alpha = 0.13 * ((p1.s + p2.s) / 2);
+        ctx.strokeStyle = 'rgba(120,180,255,' + alpha.toFixed(3) + ')';
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+      });
+
+      // strands
+      const drawStrand = (pts, col) => {
+        pts.forEach((p, i) => {
+          const q = project(p, cos, sin, cx, cy, R);
+          const rad = 3.4 * q.s;
+          if (rad <= 0.15) return;
+          ctx.beginPath();
+          ctx.arc(q.x, q.y, rad, 0, Math.PI * 2);
+          ctx.fillStyle = col.replace('ALPHA', (0.30 + 0.62 * q.s).toFixed(3));
+          ctx.fill();
+          // occasional highlight
+          if (i % 11 === 0) {
+            ctx.beginPath();
+            ctx.arc(q.x, q.y, rad * 2.3, 0, Math.PI * 2);
+            ctx.fillStyle = col.replace('ALPHA', (0.07 * q.s).toFixed(3));
+            ctx.fill();
+          }
+        });
+      };
+      drawStrand(strandA, 'rgba(138,180,248,ALPHA)');
+      drawStrand(strandB, 'rgba(94,234,212,ALPHA)');
+
+      raf = requestAnimationFrame(draw);
+    }
+
+    resize();
+    raf = requestAnimationFrame(draw);
+    window.addEventListener('resize', () => { resize(); }, { passive: true });
+
+    // pause when hero not visible (saves battery on mobile)
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) { if (!raf) { t0 = performance.now() - 1000; raf = requestAnimationFrame(draw); } }
+          else { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+        });
+      }, { threshold: 0 }).observe(canvas);
+    }
+  }
+
+  /* ============================================================
+     NAVBAR
+     ============================================================ */
+  function initNav() {
+    const toggle = $('navToggle');
+    const menu = $('navMobile');
+    toggle.addEventListener('click', () => {
+      const open = menu.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.textContent = open ? '✕' : '☰';
+    });
+    menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      menu.classList.remove('open');
+      toggle.textContent = '☰';
+      toggle.setAttribute('aria-expanded', 'false');
+    }));
+
+    $('brandLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      showLanding();
+    });
+  }
+
+  /* ============================================================
+     QUICK CHIPS
+     ============================================================ */
+  const QUICK = [
+    { id: '1TUP', name: 'Tumor protein p53' },
+    { id: '4HHB', name: 'Hemoglobin' },
+    { id: '1CRN', name: 'Crambin' },
+    { id: '6VXX', name: 'Spike glycoprotein' },
+    { id: '1MBO', name: 'Myoglobin' },
+    { id: '2HHB', name: 'Deoxyhemoglobin' }
+  ];
+
+  function initQuickChips() {
+    const host = $('quickChips');
+    host.innerHTML = QUICK.map(q =>
+      `<button class="chip" data-pdb="${esc(q.id)}" title="${esc(q.name)}">
+         <span class="cid">${esc(q.id)}</span>${esc(q.name)}
+       </button>`
+    ).join('');
+    host.querySelectorAll('.chip').forEach(btn => {
+      btn.addEventListener('click', () => loadStructure(btn.dataset.pdb));
+    });
+  }
+
+  /* ============================================================
+     SEARCH
+     ============================================================ */
+  function initSearch() {
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = searchInput.value.trim();
+      if (!q) { toast('Please enter a PDB ID or protein name', true); return; }
+      handleQuery(q);
+    });
+
+    // clear results when user edits
+    searchInput.addEventListener('input', () => {
+      if (searchRes.innerHTML) searchRes.innerHTML = '';
+    });
+  }
+
+  async function handleQuery(q) {
+    searchRes.innerHTML = '';
+    if (isPdbId(q)) {
+      loadStructure(q.toUpperCase());
+      return;
+    }
+    // full-text search
+    searchInput.blur();
+    searchRes.innerHTML = '<div style="padding:12px;font-size:13px;color:#5A6B80;">Searching RCSB PDB…</div>';
+    try {
+      const results = await fullTextSearch(q);
+      if (!results.length) {
+        searchRes.innerHTML = '<div style="padding:12px;font-size:13px;color:#5A6B80;">No structures found. Try a PDB ID like 1TUP.</div>';
+        return;
+      }
+      searchRes.innerHTML =
+        '<div style="padding:9px 9px 4px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8496AA;">' +
+        results.length + ' result' + (results.length > 1 ? 's' : '') + '</div>' +
+        results.map(r =>
+          `<button class="srl" data-pdb="${esc(r.id)}">
+             <span class="srl-id">${esc(r.id)}</span>
+             <span class="srl-body">
+               <span class="srl-title">${esc(r.title)}</span>
+               <span class="srl-meta">${esc(r.meta)}</span>
+             </span>
+           </button>`
+        ).join('');
+      searchRes.querySelectorAll('.srl').forEach(b => {
+        b.addEventListener('click', () => loadStructure(b.dataset.pdb));
+      });
+    } catch (err) {
+      searchRes.innerHTML = '<div style="padding:12px;font-size:13px;color:#B42318;">Search failed. Check your connection and try again.</div>';
+    }
+  }
+
+  async function fullTextSearch(q) {
+    const body = {
+      query: {
+        type: 'terminal',
+        service: 'full_text',
+        parameters: { value: q }
+      },
+      return_type: 'entry',
+      request_options: {
+        paginate: { start: 0, rows: 8 },
+        results_content_type: ['experimental'],
+        sort: [{ sort_by: 'score', direction: 'desc' }]
+      }
+    };
+    const r = await fetch(SEARCH_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (r.status === 204) return [];
+    if (!r.ok) throw new Error('search failed');
+    const data = await r.json();
+    const ids = (data.result_set || []).map(x => x.identifier);
+
+    // fetch titles in parallel
+    const out = await Promise.all(ids.map(async (id) => {
+      try {
+        const e = await getJSON(`${DATA_API}/entry/${id}`);
+        const title = (e.struct && e.struct.title) || 'Unnamed structure';
+        const method = (e.exptl && e.exptl[0] && e.exptl[0].method) || '—';
+        const res = e.rcsb_entry_info && e.rcsb_entry_info.resolution_combined
+          ? e.rcsb_entry_info.resolution_combined[0] : null;
+        const meta = method + (res ? ' · ' + res.toFixed(2) + ' Å' : '');
+        return { id, title, meta };
+      } catch (_) {
+        return { id, title: 'Structure ' + id, meta: '' };
+      }
+    }));
+    return out;
+  }
+
+  /* ============================================================
+     MOL* VIEWER BOOTSTRAP
+     ============================================================ */
+  function loadScript(src, timeoutMs) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      let done = false;
+      const timer = setTimeout(() => {
+        if (!done) { done = true; s.remove(); reject(new Error('timeout')); }
+      }, timeoutMs || 20000);
+      s.onload = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };
+      s.onerror = () => { if (!done) { done = true; clearTimeout(timer); s.remove(); reject(new Error('load error')); } };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function ensureMolstar() {
+    if (window.molstar && window.molstar.Viewer) return true;
+    const sources = [
+      'https://cdn.jsdelivr.net/npm/molstar@3.38.0/build/viewer/molstar.js',
+      'https://unpkg.com/molstar@3.38.0/build/viewer/molstar.js',
+      'https://cdn.jsdelivr.net/npm/molstar/build/viewer/molstar.js'
+    ];
+    for (const url of sources) {
+      try {
+        await loadScript(url, 25000);
+        if (window.molstar && window.molstar.Viewer) return true;
+      } catch (_) { /* try next */ }
+    }
+    return false;
+  }
+
+  async function initViewer() {
+    if (state.viewerReady) return true;
+
+    setViewerLoading(true, 'Initializing molecular viewer…');
+
+    const ok = await ensureMolstar();
+    if (!ok) {
+      // Fallback: iframe embed (always works)
+      state.viewerMode = 'iframe';
+      state.viewerReady = true;
+      viewerHost.innerHTML = '';
+      const ifr = document.createElement('iframe');
+      ifr.id = 'molstar-iframe';
+      ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#0B1F33;';
+      ifr.setAttribute('allowfullscreen', 'true');
+      ifr.setAttribute('title', 'Mol* 3D structure viewer');
+      viewerHost.appendChild(ifr);
+      toast('Using embedded viewer mode');
+      return true;
+    }
+
+    try {
+      state.viewer = await window.molstar.Viewer.create('molstar-host', {
+        layoutIsExpanded: false,
+        layoutShowControls: window.innerWidth >= 900,
+        layoutShowRemoteState: false,
+        layoutShowSequence: false,
+        layoutShowLog: false,
+        layoutShowLeftPanel: false,
+        viewportShowExpand: false,
+        viewportShowSelectionMode: false,
+        viewportShowAnimation: false,
+        collapseLeftPanel: true,
+        pdbProvider: 'rcsb',
+        emdbProvider: 'rcsb'
+      });
+      state.viewerMode = 'plugin';
+      state.viewerReady = true;
+      return true;
+    } catch (err) {
+      // second fallback
+      state.viewerMode = 'iframe';
+      state.viewerReady = true;
+      viewerHost.innerHTML = '';
+      const ifr = document.createElement('iframe');
+      ifr.id = 'molstar-iframe';
+      ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#0B1F33;';
+      ifr.setAttribute('allowfullscreen', 'true');
+      ifr.setAttribute('title', 'Mol* 3D structure viewer');
+      viewerHost.appendChild(ifr);
+      return true;
+    }
+  }
+
+  function setViewerLoading(on, msg) {
+    if (msg) viewerMsg.textContent = msg;
+    viewerLoad.style.display = on ? 'flex' : 'none';
+  }
+
+  async function showStructure(id, rep, dataText) {
+    setViewerLoading(true, 'Loading 3D coordinates…');
+    try {
+      if (state.viewerMode === 'iframe') {
+        const ifr = $('molstar-iframe');
+        if (ifr) {
+          ifr.src = 'https://molstar.org/viewer/?pdb=' + encodeURIComponent(id) +
+                    '&assembly=1&hide-controls=1&hide-remote-state=1';
+        }
+      } else {
+        if (dataText) {
+          await state.viewer.loadStructureFromData(dataText, 'pdb', false, { representation: rep });
+        } else {
+          await state.viewer.loadStructureFromUrl(
+            FILES_API + '/' + id + '.pdb', 'pdb', false, { representation: rep }
+          );
+        }
+      }
+    } catch (err) {
+      // mmCIF fallback for very large entries where .pdb download is unavailable
+      if (state.viewerMode === 'plugin' && !dataText) {
+        try {
+          await state.viewer.loadStructureFromUrl(
+            FILES_API + '/' + id + '.cif', 'mmcif', false, { representation: rep }
+          );
+        } catch (e2) {
+          toast('Could not render 3D model for ' + id, true);
+        }
+      } else {
+        toast('Could not render 3D model', true);
+      }
+    } finally {
+      setViewerLoading(false);
+    }
+  }
+
+  /* ============================================================
+     DATA LOADING
+     ============================================================ */
+  async function loadStructure(id) {
+    id = String(id || '').trim().toUpperCase();
+    if (!isPdbId(id)) { toast('Invalid PDB ID format', true); return; }
+    if (state.loadingStructure) return;
+
+    state.loadingStructure = true;
+    state.pdbId = id;
+    state.entry = null;
+    state.entities = [];
+    state.ligands = [];
+
+    // switch views
+    landing.hidden = true;
+    dashboard.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (history.replaceState) history.replaceState(null, '', '#structure=' + id);
+
+    // reset UI
+    $('badgeId').textContent = id;
+    $('dashTitle').textContent = 'Loading metadata…';
+    renderInfoSkeleton();
+    panel.innerHTML = '<div class="empty"><span class="ei">⏳</span>Loading structure data…</div>';
+    document.querySelectorAll('.rep-btn[data-rep]').forEach(b =>
+      b.classList.toggle('active', b.dataset.rep === 'cartoon'));
+    state.rep = 'cartoon';
+
+    // init viewer + load 3D in parallel with metadata
+    const viewerP = initViewer().then(() => showStructure(id, state.rep, null));
+
+    try {
+      const entry = await getJSON(`${DATA_API}/entry/${id}`);
+      state.entry = entry;
+
+      const polyIds = (entry.rcsb_entry_container_identifiers &&
+                       entry.rcsb_entry_container_identifiers.polymer_entity_ids) || [];
+      const nonPolyIds = (entry.rcsb_entry_container_identifiers &&
+                          entry.rcsb_entry_container_identifiers.non_polymer_entity_ids) || [];
+
+      const [entities, ligands] = await Promise.all([
+        fetchPolymerEntities(id, polyIds),
+        fetchLigands(id, nonPolyIds.slice(0, MAX_LIGANDS), nonPolyIds.length)
+      ]);
+
+      state.entities = entities;
+      state.ligands = ligands;
+
+      renderInfo();
+      renderStats();
+      renderPanel('overview');
+    } catch (err) {
+      $('dashTitle').textContent = 'Failed to load';
+      infoBody.innerHTML = '<div class="empty" style="padding:22px 0;"><span class="ei">⚠️</span>' +
+        'Could not retrieve data for <b>' + esc(id) + '</b>.<br>Check the PDB ID and your connection.</div>';
+      statGrid.innerHTML = '';
+      panel.innerHTML = '<div class="empty"><span class="ei">⚠️</span>No data available.</div>';
+      toast('Failed to load ' + id, true);
+    } finally {
+      await viewerP.catch(() => {});
+      state.loadingStructure = false;
+    }
+  }
+
+  async function fetchPolymerEntities(id, ids) {
+    if (!ids.length) return [];
+    const list = await Promise.all(ids.map(async (eid) => {
+      try {
+        const d = await getJSON(`${DATA_API}/polymer_entity/${id}/${eid}`);
+        const org = (d.rcsb_entity_source_organism && d.rcsb_entity_source_organism[0]) || {};
+        const poly = d.entity_poly || {};
+        const rpe = d.rcsb_polymer_entity || {};
+        const seqRaw = poly.pdbx_seq_one_letter_code_can || poly.pdbx_seq_one_letter_code || '';
+        return {
+          entityId: eid,
+          description: rpe.pdbx_description || d.rcsb_polymer_entity_container_identifiers?.auth_asym_ids?.join(', ') || 'Polymer',
+          organism: org.scientific_name || org.ncbi_parent_scientific_name || null,
+          taxonomyId: org.ncbi_taxonomy_id || null,
+          chains: (poly.pdbx_strand_id || '').split(',').map(s => s.trim()).filter(Boolean),
+          sequence: seqRaw.replace(/\s+/g, ''),
+          length: poly.rcsb_sample_sequence_length || seqRaw.replace(/\s+/g, '').length,
+          weight: rpe.formula_weight || null,
+          type: poly.type || 'polypeptide(L)'
+        };
+      } catch (_) { return null; }
+    }));
+    return list.filter(Boolean);
+  }
+
+  async function fetchLigands(id, ids, totalCount) {
+    if (!ids.length) return [];
+    const list = await Promise.all(ids.map(async (eid) => {
+      try {
+        const d = await getJSON(`${DATA_API}/nonpolymer_entity/${id}/${eid}`);
+        const comp = d.nonpolymer_comp || {};
+        const chem = comp.chem_comp || {};
+        return {
+          entityId: eid,
+          id: chem.id || ('LIG' + eid),
+          name: chem.name || (d.rcsb_nonpolymer_entity && d.rcsb_nonpolymer_entity.pdbx_description) || 'Unknown ligand',
+          formula: chem.formula || null,
+          formulaWeight: chem.formula_weight || null,
+          copies: (d.nonpolymer_entity && d.nonpolymer_entity.pdbx_number_of_molecules) || null
+        };
+      } catch (_) { return null; }
+    }));
+    const clean = list.filter(Boolean);
+    clean.totalCount = totalCount;
+    return clean;
+  }
+
+  /* ============================================================
+     RENDERING — INFO PANEL
+     ============================================================ */
+  function renderInfoSkeleton() {
+    infoBody.innerHTML = `
+      <div class="info-row"><div class="info-k">PDB ID</div><div class="info-v skeleton">----</div></div>
+      <div class="info-row"><div class="info-k">Protein</div><div class="info-v skeleton">Loading data</div></div>
+      <div class="info-row"><div class="info-k">Organism</div><div class="info-v skeleton">Loading</div></div>
+      <div class="info-row"><div class="info-k">Method</div><div class="info-v skeleton">Loading</div></div>
+      <div class="info-row"><div class="info-k">Resolution</div><div class="info-v skeleton">--</div></div>`;
+    statGrid.innerHTML = `
+      <div class="stat"><div class="sv skeleton">000</div><div class="sl">Residues</div></div>
+      <div class="stat"><div class="sv skeleton">0</div><div class="sl">Chains</div></div>
+      <div class="stat"><div class="sv skeleton">0000</div><div class="sl">Atoms</div></div>
+      <div class="stat"><div class="sv skeleton">0.0</div><div class="sl">Resolution</div></div>`;
+  }
+
+  function renderInfo() {
+    const e = state.entry || {};
+    const ei = e.rcsb_entry_info || {};
+    const id = state.pdbId;
+
+    const title = (e.struct && e.struct.title) || 'Unnamed structure';
+    const exptl = (e.exptl && e.exptl[0]) || {};
+    const method = exptl.method || (ei.experimental_method) || '—';
+    const resolution = (ei.resolution_combined && ei.resolution_combined[0]) || null;
+
+    const orgs = [...new Set(state.entities.map(x => x.organism).filter(Boolean))];
+    const organism = orgs.length ? orgs.join(', ') : (state.ligands.length ? '—' : '—');
+
+    const chainCount = state.entities.reduce((s, x) => s + x.chains.length, 0) ||
+                       ei.deposited_polymer_entity_instance_count || 0;
+    const residueCount = ei.deposited_polymer_monomer_count || 0;
+    const atomCount = ei.deposited_atom_count || 0;
+    const ligandCount = ei.nonpolymer_entity_count != null ? ei.nonpolymer_entity_count : state.ligands.length;
+
+    const releaseDate = e.rcsb_accession_info && e.rcsb_accession_info.initial_release_date;
+    const citation = (e.rcsb_primary_citation && e.rcsb_primary_citation.title) || null;
+    const journal = e.rcsb_primary_citation && e.rcsb_primary_citation.rcsb_journal_abbrev;
+
+    $('dashTitle').textContent = title;
+    document.title = id + ' · ' + title + ' — Protein Structure Explorer';
+
+    const rows = [
+      ['PDB ID', `<span class="mono" style="color:var(--primary);font-weight:700;">${esc(id)}</span>`],
+      ['Protein', esc(title)],
+      ['Organism', esc(organism)],
+      ['Experimental Method', esc(method)],
+      ['Resolution', resolution ? resolution.toFixed(2) + ' Å' : 'Not applicable'],
+      ['Chains', chainCount ? String(chainCount) : '—'],
+      ['Ligands', String(ligandCount || 0)],
+      ['Released', releaseDate ? shortDate(releaseDate) : '—']
+    ];
+    if (journal) rows.push(['Journal', esc(journal) + (citation ? `<span class="sub">${esc(citation.slice(0, 110))}${citation.length > 110 ? '…' : ''}</span>` : '')]);
+
+    infoBody.innerHTML = rows.map(([k, v]) =>
+      `<div class="info-row"><div class="info-k">${esc(k)}</div><div class="info-v">${v}</div></div>`
+    ).join('');
+
+    // stats
+    statGrid.innerHTML = `
+      <div class="stat"><div class="sv">${residueCount ? fmtNum(residueCount) : '—'}</div><div class="sl">Residues</div></div>
+      <div class="stat"><div class="sv">${chainCount || '—'}</div><div class="sl">Chains</div></div>
+      <div class="stat"><div class="sv">${atomCount ? fmtNum(atomCount) : '—'}</div><div class="sl">Atoms</div></div>
+      <div class="stat"><div class="sv">${resolution ? resolution.toFixed(2) : '—'}</div><div class="sl">Å Resolution</div></div>`;
+  }
+
+  function renderStats() { /* stats rendered inside renderInfo */ }
+
+  /* ============================================================
+     TABS
+     ============================================================ */
+  function initTabs() {
+    $('tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab');
+      if (!btn) return;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      renderPanel(btn.dataset.tab);
+      btn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    });
+  }
+
+  function renderPanel(tab) {
+    if (!state.entry) return;
+    switch (tab) {
+      case 'overview':    panel.innerHTML = viewOverview(); break;
+      case 'sequence':    panel.innerHTML = viewSequence(); bindSequence(); break;
+      case 'chains':      panel.innerHTML = viewChains();   bindChains();   break;
+      case 'ligands':     panel.innerHTML = viewLigands();  bindLigands();  break;
+      case 'composition': panel.innerHTML = viewComposition(); break;
+      default:            panel.innerHTML = viewOverview();
+    }
+  }
+
+  /* ---------- OVERVIEW ---------- */
+  function viewOverview() {
+    const e = state.entry || {};
+    const ei = e.rcsb_entry_info || {};
+    const rows = [];
+
+    if (e.struct && e.struct.pdbx_descriptor) rows.push(['Descriptor', e.struct.pdbx_descriptor]);
+    if (ei.polymer_entity_count) rows.push(['Polymer entities', ei.polymer_entity_count]);
+    if (ei.deposited_polymer_entity_instance_count) rows.push(['Polymer chains', ei.deposited_polymer_entity_instance_count]);
+    if (ei.nonpolymer_entity_count != null) rows.push(['Non-polymer entities', ei.nonpolymer_entity_count]);
+    if (ei.deposited_nonpolymer_atom_count) rows.push(['Ligand atoms', fmtNum(ei.deposited_nonpolymer_atom_count)]);
+    if (ei.deposited_water_atom_count) rows.push(['Water atoms', fmtNum(ei.deposited_water_atom_count)]);
+    if (ei.deposited_model_count) rows.push(['Models', ei.deposited_model_count]);
+    if (ei.selected_polymer_entity_types) rows.push(['Entity types', ei.selected_polymer_entity_types]);
+    if (ei.structure_determination_methodology) rows.push(['Methodology', ei.structure_determination_methodology]);
+
+    const orgs = [...new Set(state.entities.map(x => ({
+      name: x.organism, tax: x.taxonomyId
+    })).filter(o => o.name).map(o => JSON.stringify(o)))].map(s => JSON.parse(s));
+
+    let html = '<h4>General Information</h4>';
+    if (rows.length) {
+      html += '<div style="border:1px solid var(--border-2);border-radius:10px;overflow:hidden;">' +
+        rows.map(([k, v], i) =>
+          `<div style="display:flex;gap:12px;padding:10px 13px;${i ? 'border-top:1px solid var(--border-2);' : ''}background:${i % 2 ? '#FBFCFE' : '#fff'};">
+             <div style="flex:0 0 40%;max-width:180px;font-size:11.5px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.045em;">${esc(k)}</div>
+             <div style="flex:1;min-width:0;font-size:13.5px;font-weight:550;word-break:break-word;">${esc(v)}</div>
+           </div>`).join('') + '</div>';
+    } else {
+      html += '<div class="empty">No additional information available.</div>';
+    }
+
+    if (orgs.length) {
+      html += '<h4 style="margin-top:22px;">Source Organisms</h4><div style="display:flex;flex-wrap:wrap;gap:8px;">';
+      orgs.forEach(o => {
+        html += `<span style="display:inline-flex;align-items:center;gap:7px;background:#E6F5F2;border:1px solid #C4E8E2;color:#0F5E58;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:100px;">
+          ${esc(o.name)}${o.tax ? ` <span style="font-family:var(--mono);font-size:10.5px;opacity:.7;">tax:${esc(o.tax)}</span>` : ''}</span>`;
+      });
+      html += '</div>';
+    }
+
+    return html;
+  }
+
+  /* ---------- SEQUENCE ---------- */
+  function viewSequence() {
+    const withSeq = state.entities.filter(e => e.sequence && e.sequence.length);
+    if (!withSeq.length) {
+      return '<div class="empty"><span class="ei">🧬</span>No polymer sequence available for this entry.</div>';
+    }
+
+    let html = '<h4>Polymer Sequence</h4>';
+    withSeq.forEach((ent, idx) => {
+      const seq = ent.sequence;
+      const blocks = [];
+      for (let i = 0; i < seq.length; i += 60) {
+        const chunk = seq.slice(i, i + 60);
+        const groups = [];
+        for (let j = 0; j < chunk.length; j += 10) {
+          groups.push(chunk.slice(j, j + 10));
+        }
+        blocks.push(
+          `<div><span class="ln">${i + 1}</span>${esc(groups.join(' '))}</div>`
+        );
+      }
+
+      html += `<div class="seq-block">
+        <div class="seq-block-head">
+          <span class="seq-chain">Chain ${esc(ent.chains.join(', ') || '?')}</span>
+          <span class="seq-name">${esc(ent.description)}</span>
+          <span class="seq-len">${seq.length} aa</span>
+        </div>
+        <div class="seq" data-entity="${idx}">${blocks.join('')}</div>
+      </div>`;
+    });
+    html += `<div style="font-size:12px;color:var(--muted);margin-top:6px;">
+      Tip: tap any residue letter to highlight it. Sequences shown in one-letter code.
+    </div>`;
+    return html;
+  }
+
+  function bindSequence() {
+    panel.querySelectorAll('.seq').forEach(el => {
+      el.addEventListener('click', (ev) => {
+        const t = ev.target;
+        if (!t.classList.contains('res')) return;
+        el.querySelectorAll('.res').forEach(r => r.style.background = '');
+        t.style.background = '#FFE9A8';
+        t.style.color = '#7A5B00';
+        t.style.fontWeight = '700';
+      });
+    });
+  }
+
+  /* ---------- CHAINS ---------- */
+  function viewChains() {
+    if (!state.entities.length) {
+      return '<div class="empty"><span class="ei">⛓️</span>No polymer chains found in this entry.</div>';
+    }
+    const rows = state.entities.map(ent => {
+      const chains = ent.chains.length
+        ? ent.chains.map(c => `<span class="chain-pill btn" data-chain="${esc(c)}" title="Isolate chain ${esc(c)}">${esc(c)}</span>`).join('')
+        : '<span style="color:var(--muted);">—</span>';
+      const mw = ent.weight ? (ent.weight / 1000).toFixed(1) + ' kDa' : '—';
+      return `<tr>
+        <td class="mono">${esc(ent.entityId)}</td>
+        <td>${chains}</td>
+        <td>${esc(ent.description)}${ent.organism ? `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;">${esc(ent.organism)}</div>` : ''}</td>
+        <td class="mono">${ent.length ? fmtNum(ent.length) : '—'}</td>
+        <td class="mono">${mw}</td>
+      </tr>`;
+    }).join('');
+
+    return `<h4>Chain Information</h4>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr>
+            <th>Entity</th><th>Chains</th><th>Description</th><th>Residues</th><th>Mass</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:12px;">
+        Tap a chain ID to isolate that chain in the 3D viewer.
+      </div>`;
+  }
+
+  function bindChains() {
+    panel.querySelectorAll('.chain-pill.btn').forEach(p => {
+      p.addEventListener('click', () => isolateChain(p.dataset.chain));
+    });
+  }
+
+  /* ---------- LIGANDS ---------- */
+  function viewLigands() {
+    if (!state.ligands.length) {
+      return '<div class="empty"><span class="ei">💊</span>No non-polymer ligands found in this entry.</div>';
+    }
+    const total = state.ligands.totalCount || state.ligands.length;
+    const cards = state.ligands.map(l => `
+      <div class="lig">
+        <span class="lig-id">${esc(l.id)}</span>
+        <div class="lig-body">
+          <div class="lig-name">${esc(l.name)}</div>
+          <div class="lig-meta">
+            ${l.formula ? esc(l.formula) + ' · ' : ''}${l.formulaWeight ? Number(l.formulaWeight).toFixed(1) + ' Da' : ''}
+            ${l.copies ? ' · ' + l.copies + ' copies' : ''}
+          </div>
+        </div>
+      </div>`).join('');
+
+    return `<h4>Ligands &amp; Non-polymer Entities (${total})</h4>
+      <div class="lig-grid">${cards}</div>
+      ${total > state.ligands.length ? `<div style="font-size:12px;color:var(--muted);margin-top:12px;">Showing first ${state.ligands.length} of ${total} entities. Water molecules are excluded.</div>` : ''}`;
+  }
+
+  function bindLigands() { /* cards are informational */ }
+
+  /* ---------- COMPOSITION ---------- */
+  function viewComposition() {
+    const totalRes = state.entities.reduce((s, e) => s + (e.length || 0), 0);
+    if (!totalRes) return '<div class="empty"><span class="ei">📊</span>No composition data available.</div>';
+
+    const bars = state.entities.map(ent => {
+      const pct = (ent.length / totalRes) * 100;
+      const label = `Entity ${ent.entityId} · Chain ${ent.chains.join(', ') || '?'}`;
+      return `<div class="bar-row">
+        <div class="bar-top">
+          <span>${esc(label)}</span>
+          <span class="bv">${fmtNum(ent.length)} aa · ${pct.toFixed(1)}%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(2)}%"></div></div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:5px;">${esc(ent.description)}</div>
+      </div>`;
+    }).join('');
+
+    const ei = (state.entry && state.entry.rcsb_entry_info) || {};
+    const atomTotal = ei.deposited_atom_count || 0;
+    const polyAtoms = ei.deposited_polymer_atom_count || 0;
+    const nonPolyAtoms = ei.deposited_nonpolymer_atom_count || 0;
+    const waterAtoms = ei.deposited_water_atom_count || 0;
+
+    let atomSection = '';
+    if (atomTotal) {
+      const parts = [
+        ['Polymer', polyAtoms, '#155EEF'],
+        ['Ligands', nonPolyAtoms, '#0F766E'],
+        ['Water', waterAtoms, '#94A3B8']
+      ].filter(p => p[1] > 0);
+      atomSection = '<h4 style="margin-top:26px;">Atom Composition</h4>' + parts.map(([name, val, col]) => {
+        const pct = (val / atomTotal) * 100;
+        return `<div class="bar-row">
+          <div class="bar-top"><span>${name}</span><span class="bv">${fmtNum(val)} · ${pct.toFixed(1)}%</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(2)}%;background:${col};"></div></div>
+        </div>`;
+      }).join('') +
+      `<div style="font-size:12px;color:var(--muted);margin-top:8px;">Total deposited atoms: <b style="font-family:var(--mono);">${fmtNum(atomTotal)}</b></div>`;
+    }
+
+    return `<h4>Chain Length Distribution</h4>${bars}${atomSection}`;
+  }
+
+  /* ============================================================
+     VIEWER CONTROLS
+     ============================================================ */
+  function initViewerControls() {
+    document.querySelectorAll('.rep-btn[data-rep]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!state.pdbId || state.loadingStructure) return;
+        const rep = btn.dataset.rep;
+        if (rep === state.rep) return;
+        state.rep = rep;
+        document.querySelectorAll('.rep-btn[data-rep]').forEach(b =>
+          b.classList.toggle('active', b.dataset.rep === rep));
+        await showStructure(state.pdbId, rep, null);
+      });
+    });
+
+    $('resetBtn').addEventListener('click', async () => {
+      if (!state.pdbId) return;
+      state.rep = 'cartoon';
+      document.querySelectorAll('.rep-btn[data-rep]').forEach(b =>
+        b.classList.toggle('active', b.dataset.rep === 'cartoon'));
+      await showStructure(state.pdbId, 'cartoon', null);
+      toast('View reset');
+    });
+
+    $('fsBtn').addEventListener('click', () => {
+      const shell = document.querySelector('.viewer-shell');
+      if (!document.fullscreenElement) {
+        (shell.requestFullscreen || shell.webkitRequestFullscreen || function () {}).call(shell);
+      } else {
+        (document.exitFullscreen || document.webkitExitFullscreen || function () {}).call(document);
+      }
+    });
+
+    $('shotBtn').addEventListener('click', () => {
+      const canvas = viewerHost.querySelector('canvas');
+      if (!canvas) { toast('Viewer not ready', true); return; }
+      try {
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (state.pdbId || 'structure') + '_view.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('Image saved');
+      } catch (e) {
+        toast('Screenshot not supported on this device', true);
+      }
+    });
+
+    $('backBtn').addEventListener('click', showLanding);
+    initDownload();
+  }
+
+  /* ============================================================
+     ISOLATE CHAIN (client-side PDB filtering)
+     ============================================================ */
+  async function isolateChain(chainId) {
+    if (!state.pdbId || state.loadingStructure) return;
+    if (state.viewerMode === 'iframe') {
+      toast('Chain isolation needs the full viewer (check connection)');
+      return;
+    }
+    setViewerLoading(true, 'Isolating chain ' + chainId + '…');
+    try {
+      const text = await getText(`${FILES_API}/${state.pdbId}.pdb`);
+      const lines = text.split('\n');
+      const keep = [];
+      let kept = 0;
+      for (const line of lines) {
+        const rec = line.slice(0, 6);
+        if (rec === 'ATOM  ' || rec === 'HETATM') {
+          if (line.charAt(21) === chainId) { keep.push(line); kept++; }
+        } else if (rec === 'HEADER' || rec === 'TITLE ' || rec === 'CRYST1' ||
+                   rec === 'AUTHOR' || rec === 'COMPND' || rec === 'SOURCE') {
+          keep.push(line);
+        }
+      }
+      if (!kept) { toast('No atoms found for chain ' + chainId, true); setViewerLoading(false); return; }
+      keep.push('END');
+      await state.viewer.loadStructureFromData(keep.join('\n'), 'pdb', false, { representation: state.rep });
+      toast('Isolated chain ' + chainId + ' (' + kept + ' atoms)');
+    } catch (err) {
+      toast('Could not isolate chain ' + chainId, true);
+    } finally {
+      setViewerLoading(false);
+    }
+  }
+
+  /* ============================================================
+     DOWNLOAD
+     ============================================================ */
+  function initDownload() {
+    const wrap = $('ddWrap');
+    const btn = $('ddBtn');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wrap.classList.toggle('open');
+    });
+    document.addEventListener('click', () => wrap.classList.remove('open'));
+
+    $('ddMenu').addEventListener('click', async (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      wrap.classList.remove('open');
+      const kind = b.dataset.dl;
+      const id = state.pdbId;
+      if (!id) return;
+
+      try {
+        if (kind === 'pdb' || kind === 'cif') {
+          const url = `${FILES_API}/${id}.${kind}`;
+          toast('Downloading ' + id + '.' + kind + '…');
+          triggerDownload(url, `${id}.${kind}`);
+        } else if (kind === 'fasta') {
+          const text = buildFasta();
+          downloadBlob(text, `${id}.fasta`, 'text/plain');
+        } else if (kind === 'report') {
+          downloadBlob(buildReport(), `${id}_report.txt`, 'text/plain');
+        }
+      } catch (err) {
+        toast('Download failed', true);
+      }
+    });
+  }
+
+  function triggerDownload(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function downloadBlob(text, filename, mime) {
+    const blob = new Blob([text], { type: mime + ';charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('Saved ' + filename);
+  }
+
+  function buildFasta() {
+    const id = state.pdbId;
+    const lines = [];
+    state.entities.forEach((ent, i) => {
+      if (!ent.sequence) return;
+      const header = `>${id}_${ent.entityId}|Chain ${ent.chains.join(',') || '?'}|${ent.description}|${ent.organism || 'unknown'}`;
+      lines.push(header);
+      for (let j = 0; j < ent.sequence.length; j += 60) {
+        lines.push(ent.sequence.slice(j, j + 60));
+      }
+    });
+    return lines.join('\n') + '\n';
+  }
+
+  function buildReport() {
+    const e = state.entry || {};
+    const ei = e.rcsb_entry_info || {};
+    const id = state.pdbId;
+    const L = [];
+    const pad = (s, n) => String(s).padEnd(n, ' ');
+
+    L.push('='.repeat(64));
+    L.push('  PROTEIN STRUCTURE EXPLORER — STRUCTURE REPORT');
+    L.push('='.repeat(64));
+    L.push('');
+    L.push('PDB ID            : ' + id);
+    L.push('Title             : ' + ((e.struct && e.struct.title) || 'N/A'));
+    L.push('Experimental      : ' + (((e.exptl && e.exptl[0]) || {}).method || 'N/A'));
+    const res = ei.resolution_combined && ei.resolution_combined[0];
+    L.push('Resolution        : ' + (res ? res.toFixed(2) + ' A' : 'N/A'));
+    L.push('Deposited         : ' + shortDate(e.rcsb_accession_info && e.rcsb_accession_info.initial_release_date));
+    L.push('Report generated  : ' + new Date().toISOString());
+    L.push('');
+    L.push('-- STATISTICS ' + '-'.repeat(50));
+    L.push('Polymer entities  : ' + (ei.polymer_entity_count || 0));
+    L.push('Polymer chains    : ' + (ei.deposited_polymer_entity_instance_count || 0));
+    L.push('Residues          : ' + (ei.deposited_polymer_monomer_count || 0));
+    L.push('Total atoms       : ' + (ei.deposited_atom_count || 0));
+    L.push('Ligand entities   : ' + (ei.nonpolymer_entity_count || 0));
+    L.push('Water atoms       : ' + (ei.deposited_water_atom_count || 0));
+    L.push('');
+    L.push('-- CHAINS ' + '-'.repeat(54));
+    L.push(pad('Entity', 8) + pad('Chains', 14) + pad('Residues', 10) + 'Description');
+    state.entities.forEach(ent => {
+      L.push(
+        pad(ent.entityId, 8) +
+        pad(ent.chains.join(',') || '-', 14) +
+        pad(ent.length || '-', 10) +
+        ent.description
+      );
+    });
+    L.push('');
+    L.push('-- LIGANDS ' + '-'.repeat(53));
+    if (state.ligands.length) {
+      state.ligands.forEach(l => {
+        L.push(pad(l.id, 8) + pad(l.formula || '-', 16) + l.name);
+      });
+    } else {
+      L.push('None');
+    }
+    L.push('');
+    L.push('-- SEQUENCES ' + '-'.repeat(51));
+    state.entities.forEach(ent => {
+      L.push('>Entity ' + ent.entityId + ' | Chain ' + (ent.chains.join(',') || '?') + ' | ' + ent.description);
+      const s = ent.sequence || '';
+      for (let i = 0; i < s.length; i += 60) L.push(s.slice(i, i + 60));
+      L.push('');
+    });
+    L.push('='.repeat(64));
+    L.push('Data source: RCSB Protein Data Bank (https://www.rcsb.org)');
+    L.push('='.repeat(64));
+    return L.join('\n');
+  }
+
+  /* ============================================================
+     VIEW SWITCHING
+     ============================================================ */
+  function showLanding() {
+    dashboard.hidden = true;
+    landing.hidden = false;
+    document.title = 'Protein Structure Explorer — Interactive 3D Bioinformatics Platform';
+    if (history.replaceState) history.replaceState(null, '', '#explore');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    searchRes.innerHTML = '';
+    searchInput.value = '';
+  }
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+  function init() {
+    $('year').textContent = new Date().getFullYear();
+    initNav();
+    initHero();
+    initQuickChips();
+    initSearch();
+    initTabs();
+    initViewerControls();
+
+    // deep link support: #structure=1TUP
+    const m = location.hash.match(/structure=([A-Za-z0-9]{4})/i);
+    if (m && isPdbId(m[1])) {
+      searchInput.value = m[1].toUpperCase();
+      loadStructure(m[1]);
+    }
+
+    // handle back button
+    window.addEventListener('hashchange', () => {
+      if (!location.hash.includes('structure=') && !dashboard.hidden) {
+        // allow natural navigation
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>
